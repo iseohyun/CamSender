@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.3.0] - 2026-08-28
+### Added
+- Milestone 2 구현 완료: 서비스 탐색 (NSD) 시스템.
+- `NsdHelper.kt`: NsdManager를 이용한 "CamSenderServer" 자동 탐색 로직.
+- 포트 동적 처리: 탐색된 서비스의 포트 정보를 자동으로 인식 및 적용.
+- `MainActivity.kt`: NSD 연동 및 서버 발견/유실에 따른 실시간 UI 업데이트.
+- `.cursorrules` 설계 원칙 업데이트: 응집도/결합도 및 의도 확인 절차 명시.
+
 ## [v0.2.0] - 2026-08-28
 ### Added
 - Milestone 1 구현 완료: 기초 설정 및 권한 시스템.

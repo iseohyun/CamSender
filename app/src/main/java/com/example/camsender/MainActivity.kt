@@ -9,10 +9,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.camsender.databinding.ActivityMainBinding
+import com.example.camsender.network.NsdHelper
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var nsdHelper: NsdHelper
+
+    private var targetServerIp: String? = null
+    private var targetServerPort: Int? = null
 
     private val requiredPermissions = mutableListOf(
         Manifest.permission.CAMERA,
@@ -31,6 +36,7 @@ class MainActivity : AppCompatActivity() {
         val allGranted = permissions.entries.all { it.value }
         if (allGranted) {
             startCameraPreview()
+            nsdHelper.startDiscovery()
         } else {
             Toast.makeText(this, "Permissions required for core features", Toast.LENGTH_LONG).show()
         }
@@ -41,6 +47,28 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        nsdHelper = NsdHelper(this).apply {
+            listener = object : NsdHelper.OnServerFoundListener {
+                override fun onServerFound(ip: String, port: Int) {
+                    runOnUiThread {
+                        targetServerIp = ip
+                        targetServerPort = port
+                        binding.tvServerStatus.text = "Server Found: $ip:$port"
+                        binding.etServerIp.setText(ip)
+                        Toast.makeText(this@MainActivity, "Server discovered automatically", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onServerLost() {
+                    runOnUiThread {
+                        targetServerIp = null
+                        targetServerPort = null
+                        binding.tvServerStatus.text = "Server Lost. Searching..."
+                    }
+                }
+            }
+        }
+
         if (allPermissionsGranted()) {
             startCameraPreview()
         } else {
@@ -50,15 +78,36 @@ class MainActivity : AppCompatActivity() {
         setupUI()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (allPermissionsGranted()) {
+            binding.tvServerStatus.text = "Searching for CamSender server..."
+            nsdHelper.startDiscovery()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        nsdHelper.stopDiscovery()
+    }
+
     private fun setupUI() {
         binding.btnCapture.setOnClickListener {
+            if (targetServerIp == null) {
+                Toast.makeText(this, "Server not connected", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             Toast.makeText(this, "Capture (TBD)", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnConnect.setOnClickListener {
             val ip = binding.etServerIp.text.toString()
-            binding.tvServerStatus.text = "Server IP: $ip"
-            Toast.makeText(this, "Server set to $ip", Toast.LENGTH_SHORT).show()
+            if (ip.isNotEmpty()) {
+                targetServerIp = ip
+                targetServerPort = 8443 // Default port for manual entry
+                binding.tvServerStatus.text = "Server (Manual): $ip:$targetServerPort"
+                Toast.makeText(this, "Server set manually to $ip", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

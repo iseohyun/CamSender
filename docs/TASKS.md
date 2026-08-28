@@ -10,9 +10,10 @@
 - [x] Git 초기화 및 GitHub Push
 
 ## Milestone 2: 서비스 탐색 (NSD)
-- [ ] `NsdHelper` 클래스 구현 (Service Discovery)
-- [ ] 탐색된 서버 리스트 UI 연동
-- [ ] 수동 IP 입력 다이얼로그 구현
+- [x] `NsdHelper` 클래스 구현 (Service Discovery, Filter, Resolve)
+- [x] 탐색된 서버 리스트 UI 연동 및 동적 포트 적용
+- [x] 수동 IP 입력 및 자동 탐색 우선순위 로직
+- [x] GitHub Push
 
 ## Milestone 3: 카메라 (CameraX)
 - [ ] CameraProvider 초기화 및 Preview 연결
