@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.0.4] - 2026-08-28
+### Added
+- 서버 주소 자동 완성 기능: 수동 설정 다이얼로그 오픈 시 현재 연결 정보 또는 과거 연결 이력(SharedPreferences)을 자동으로 입력.
+- 연결 성공 시 서버 주소 영구 저장 로직 추가.
+
 ## [v1.0.3] - 2026-08-28
 ### Added
 - 맞춤형 앱 아이콘 적용: 제공된 SVG 디자인을 바탕으로 Adaptive Icon(Background/Foreground) 구성.

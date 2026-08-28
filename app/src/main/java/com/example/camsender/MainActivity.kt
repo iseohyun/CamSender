@@ -41,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     private var targetServerIp: String? = null
     private var targetServerPort: Int? = null
 
+    private val prefs by lazy { getSharedPreferences("camsender_prefs", MODE_PRIVATE) }
+
     private val requiredPermissions = mutableListOf(
         Manifest.permission.CAMERA,
         Manifest.permission.INTERNET,
@@ -142,6 +144,9 @@ class MainActivity : AppCompatActivity() {
         binding.tvDrawerServerInfo.text = infoText
         binding.tvMainStatus.text = "연결됨: $ip"
         
+        // Save to preferences
+        prefs.edit().putString("last_ip", ip).putInt("last_port", port).apply()
+        
         apiPath?.let { transferManager.setApiPath(it) }
         transferManager.recoverPendingJobs(cacheDir, ip, port)
 
@@ -163,6 +168,13 @@ class MainActivity : AppCompatActivity() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_manual_config, null)
         val etIp = dialogView.findViewById<EditText>(R.id.etDialogIp)
         val etPort = dialogView.findViewById<EditText>(R.id.etDialogPort)
+
+        // Pre-fill with current connection OR last known connection
+        val lastIp = targetServerIp ?: prefs.getString("last_ip", "")
+        val lastPort = targetServerPort ?: prefs.getInt("last_port", 8443)
+
+        etIp.setText(lastIp)
+        etPort.setText(lastPort.toString())
 
         AlertDialog.Builder(this)
             .setView(dialogView)
