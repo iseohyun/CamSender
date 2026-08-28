@@ -41,8 +41,12 @@ Android 기기에서 촬영한 문서를 로컬 네트워크의 Python 서버로
     - 데이터 형식: Multipart/form-data
     - 파라미터: 
         - `file`: 이미지 파일 데이터 (image/jpeg)
-- **보안 정책**:
-    - 자체 서명 인증서(Self-signed) 허용 및 특정 서버 인증서 신뢰 체계 구축
+- **보안 정책 (OTP 페어링 & 동적 핀닝)**:
+    - **Step 1 (Discovery)**: mDNS를 통해 서버 주소 및 포트 획득.
+    - **Step 2 (Request OTP)**: 클라이언트가 서버에 페어링 시작 요청 (`POST /init-pairing`).
+    - **Step 3 (Auth)**: 서버가 생성한 6자리 OTP를 사용자가 모바일 앱에 입력.
+    - **Step 4 (TOFU)**: 입력된 OTP를 사용하여 서버의 인증서(`cert.pem`) 획득 (`GET /cert?pin=...`).
+    - **Step 5 (Strict Pinning)**: 획득한 인증서를 저장하고 이후 모든 통신에 대해 엄격한 상호 검증 수행.
 
 ## 5. 데이터 정책
 - **저장 위치**: `context.cacheDir` (앱 내부 임시 디렉토리)

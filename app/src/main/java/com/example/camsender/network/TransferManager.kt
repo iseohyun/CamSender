@@ -14,8 +14,9 @@ import org.json.JSONObject
 import java.io.File
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import javax.net.ssl.SSLHandshakeException
 
-class TransferManager(private val okHttpClient: OkHttpClient) {
+class TransferManager(private val sslManager: DynamicSslManager) {
 
     private val _jobs = MutableStateFlow<List<TransferJob>>(emptyList())
     val jobs: StateFlow<List<TransferJob>> = _jobs
@@ -82,12 +83,12 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
         }
     }
 
-    private suspend fun isServerHealthy(ip: String, port: Int): Pair<Boolean, String?> {
+    private suspend fun isServerHealthy(client: OkHttpClient, ip: String, port: Int): Pair<Boolean, String?> {
         val url = "https://$ip:$port/health"
         Log.d("TransferManager", "Attempting Health Check: $url")
         val request = Request.Builder().url(url).build()
         return try {
-            okHttpClient.newCall(request).execute().use { response ->
+            client.newCall(request).execute().use { response ->
                 Log.d("TransferManager", "Health Check Response: ${response.code}")
                 if (response.isSuccessful) {
                     val body = response.body?.string() ?: ""
@@ -98,67 +99,68 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
                         Log.d("TransferManager", "Server is Healthy and Ready")
                         Pair(true, null)
                     } else {
-                        val msg = "서버 상태 비정상 ($status) 또는 저장소 준비 안 됨 ($storageReady)"
-                        Log.w("TransferManager", "Health Check Logic Failed: $msg")
+                        val msg = "서버 상태 비정상 ($status) 또는 저장소 준비 안 됨"
                         Pair(false, msg)
                     }
                 } else {
-                    val msg = "헬스체크 실패 (HTTP ${response.code})"
-                    Log.w("TransferManager", msg)
-                    Pair(false, msg)
+                    Pair(false, "헬스체크 실패 (HTTP ${response.code})")
                 }
             }
         } catch (e: Exception) {
-            val msg = "서버 연결 불가: ${e.localizedMessage}"
-            Log.e("TransferManager", "Health Check Exception: $msg", e)
-            Pair(false, msg)
+            Pair(false, "서버 연결 불가: ${e.localizedMessage}")
         }
     }
 
     private suspend fun uploadFile(job: TransferJob) {
         updateJobStatus(job.id, TransferJob.Status.SENDING)
 
-        // 1. Health Check
-        val (healthy, error) = isServerHealthy(job.targetIp, job.targetPort)
-        if (!healthy) {
-            updateJobStatus(job.id, TransferJob.Status.FAILED, error)
+        // 1. Get Strict Client
+        val client = sslManager.getStrictClient(job.targetIp) ?: run {
+            updateJobStatus(job.id, TransferJob.Status.FAILED, "서버 페어링 필요 (인증서 없음)")
             return
         }
 
-        // 2. Upload
+        // 2. Health Check
+        val (healthy, healthError) = isServerHealthy(client, job.targetIp, job.targetPort)
+        if (!healthy) {
+            updateJobStatus(job.id, TransferJob.Status.FAILED, healthError)
+            return
+        }
+
+        // 3. Upload
         val url = "https://${job.targetIp}:${job.targetPort}$currentApiPath"
-        Log.d("TransferManager", "Starting Upload: $url")
         val requestBody = job.file.asRequestBody("image/jpeg".toMediaType())
         val multipartBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("file", job.file.name, requestBody)
             .build()
 
-        val request = Request.Builder()
-            .url(url)
-            .post(multipartBody)
-            .build()
+        val request = Request.Builder().url(url).post(multipartBody).build()
 
         try {
-            okHttpClient.newCall(request).execute().use { response ->
+            client.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
                     Log.d("TransferManager", "Upload successful: ${job.file.name}")
                     updateJobStatus(job.id, TransferJob.Status.SUCCESS)
                     if (job.file.exists()) job.file.delete()
                 } else {
                     val errorMsg = "서버 오류: ${response.code}"
-                    Log.e("TransferManager", "Upload failed: $errorMsg")
                     updateJobStatus(job.id, TransferJob.Status.FAILED, errorMsg)
                 }
             }
         } catch (e: Exception) {
             Log.e("TransferManager", "Upload exception", e)
-            val mappedError = when(e) {
-                is SocketTimeoutException -> "서버 연결 시간 초과"
-                is UnknownHostException -> "서버 주소를 찾을 수 없음 (네트워크 확인 필요)"
-                else -> "전송 오류: ${e.localizedMessage}"
+            if (e is SSLHandshakeException) {
+                sslManager.clearPairing(job.targetIp)
+                updateJobStatus(job.id, TransferJob.Status.FAILED, "보안 인증서가 변경되었습니다. 다시 페어링해 주세요.")
+            } else {
+                val mappedError = when(e) {
+                    is SocketTimeoutException -> "서버 연결 시간 초과"
+                    is UnknownHostException -> "서버 주소를 찾을 수 없음"
+                    else -> "전송 오류: ${e.localizedMessage}"
+                }
+                updateJobStatus(job.id, TransferJob.Status.FAILED, mappedError)
             }
-            updateJobStatus(job.id, TransferJob.Status.FAILED, mappedError)
         } finally {
             processNext()
         }

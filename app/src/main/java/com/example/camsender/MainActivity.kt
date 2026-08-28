@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.camsender.camera.CameraHelper
 import com.example.camsender.databinding.ActivityMainBinding
 import com.example.camsender.model.TransferJob
+import com.example.camsender.network.DynamicSslManager
 import com.example.camsender.network.NsdHelper
 import com.example.camsender.network.TransferManager
 import com.example.camsender.ui.TransferJobAdapter
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nsdHelper: NsdHelper
     private lateinit var cameraHelper: CameraHelper
     private lateinit var transferManager: TransferManager
+    private lateinit var sslManager: DynamicSslManager
     private lateinit var jobAdapter: TransferJobAdapter
 
     private var targetServerIp: String? = null
@@ -70,6 +72,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        sslManager = DynamicSslManager(this)
+        transferManager = TransferManager(sslManager)
+        
         setupDrawer()
         initServices()
         
@@ -84,13 +89,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDrawer() {
-        // Set drawer width to 95% of screen width
         val displayMetrics = resources.displayMetrics
         val drawerParams = binding.drawerContent.layoutParams
         drawerParams.width = (displayMetrics.widthPixels * 0.95).toInt()
         binding.drawerContent.layoutParams = drawerParams
 
-        // Setup RecyclerView in Drawer
         jobAdapter = TransferJobAdapter(
             onRetry = { transferManager.retryJob(it.id) },
             onHold = { job, hold -> transferManager.holdJob(job.id, hold) },
@@ -103,17 +106,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initServices() {
-        val okHttpClient = OkHttpClient()
-        transferManager = TransferManager(okHttpClient)
         cameraHelper = CameraHelper(this, this, binding.previewView)
         
         nsdHelper = NsdHelper(this).apply {
             listener = object : NsdHelper.OnServerFoundListener {
                 override fun onServerFound(ip: String, port: Int, apiPath: String?, version: String?) {
                     addIntroLog("서버 발견! 주소: $ip:$port")
-                    addIntroLog("상세 정보: API=$apiPath, Version=$version")
                     runOnUiThread {
-                        connectToServer(ip, port, apiPath, version)
+                        checkPairingAndConnect(ip, port, apiPath, version)
                     }
                 }
 
@@ -138,6 +138,54 @@ class MainActivity : AppCompatActivity() {
         nsdHelper.startDiscovery()
     }
 
+    private fun checkPairingAndConnect(ip: String, port: Int, apiPath: String? = null, version: String? = null) {
+        if (sslManager.isPaired(ip)) {
+            connectToServer(ip, port, apiPath, version)
+        } else {
+            showPairingDialog(ip, port, apiPath, version)
+        }
+    }
+
+    private fun showPairingDialog(ip: String, port: Int, apiPath: String?, version: String?) {
+        AlertDialog.Builder(this)
+            .setTitle("서버 페어링 필요")
+            .setMessage("새로운 서버($ip)를 발견했습니다. 페어링을 시작할까요? 서버 화면에 표시된 PIN 번호가 필요합니다.")
+            .setPositiveButton("페어링 시작") { _, _ ->
+                lifecycleScope.launch {
+                    addIntroLog("서버에 OTP 생성 요청 중...")
+                    sslManager.requestOtp(ip, port).onSuccess {
+                        showPinInputDialog(ip, port, apiPath, version)
+                    }.onFailure {
+                        Toast.makeText(this@MainActivity, "페어링 요청 실패: ${it.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun showPinInputDialog(ip: String, port: Int, apiPath: String?, version: String?) {
+        val etPin = EditText(this).apply { hint = "6자리 PIN 입력" }
+        AlertDialog.Builder(this)
+            .setTitle("PIN 번호 입력")
+            .setMessage("서버 화면에 표시된 6자리 번호를 입력하세요.")
+            .setView(etPin)
+            .setPositiveButton("인증") { _, _ ->
+                val pin = etPin.text.toString()
+                lifecycleScope.launch {
+                    addIntroLog("인증서 획득 시도 중...")
+                    sslManager.fetchCertWithPin(ip, port, pin).onSuccess {
+                        addIntroLog("페어링 성공!")
+                        connectToServer(ip, port, apiPath, version)
+                    }.onFailure {
+                        Toast.makeText(this@MainActivity, "인증 실패: ${it.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
     private fun connectToServer(ip: String, port: Int, apiPath: String? = null, version: String? = null) {
         addIntroLog("서버 연결 시퀀스 시작: $ip:$port")
         targetServerIp = ip
@@ -146,8 +194,6 @@ class MainActivity : AppCompatActivity() {
         binding.tvDrawerServerInfo.text = infoText
         binding.tvMainStatus.text = "연결됨: $ip"
         
-        // Save to preferences
-        addIntroLog("서버 주소 저장 중...")
         prefs.edit().putString("last_ip", ip).putInt("last_port", port).apply()
         
         apiPath?.let { 
@@ -177,7 +223,6 @@ class MainActivity : AppCompatActivity() {
         val etIp = dialogView.findViewById<EditText>(R.id.etDialogIp)
         val etPort = dialogView.findViewById<EditText>(R.id.etDialogPort)
 
-        // Pre-fill with current connection OR last known connection
         val lastIp = targetServerIp ?: prefs.getString("last_ip", "")
         val lastPort = targetServerPort ?: prefs.getInt("last_port", 8443)
 
@@ -191,7 +236,7 @@ class MainActivity : AppCompatActivity() {
                 val port = etPort.text.toString().toIntOrNull() ?: 8443
                 if (ip.isNotEmpty()) {
                     addIntroLog("수동 연결 시도: $ip:$port")
-                    connectToServer(ip, port)
+                    checkPairingAndConnect(ip, port)
                 }
             }
             .setNegativeButton("취소", null)
@@ -202,7 +247,6 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 transferManager.jobs.collectLatest { jobs ->
-                    // Sort by latest first
                     val sortedJobs = jobs.sortedByDescending { it.timestamp }
                     jobAdapter.submitList(sortedJobs)
 
