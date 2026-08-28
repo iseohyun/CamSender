@@ -2,9 +2,12 @@ package com.example.camsender.camera
 
 import android.content.Context
 import android.util.Log
+import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.core.*
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -39,15 +42,25 @@ class CameraHelper(
         cameraProviderFuture.addListener({
             cameraProvider = cameraProviderFuture.get()
 
+            val resolutionSelector = ResolutionSelector.Builder()
+                .setResolutionStrategy(
+                    ResolutionStrategy(
+                        Size(1920, 1440),
+                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER
+                    )
+                )
+                .build()
+
             preview = Preview.Builder()
-                .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                .setResolutionSelector(resolutionSelector)
                 .build()
                 .also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
             imageCapture = ImageCapture.Builder()
-                .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                .setResolutionSelector(resolutionSelector)
+                .setJpegQuality(80)
                 .setFlashMode(flashMode)
                 .build()
 

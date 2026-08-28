@@ -13,9 +13,10 @@
 - [x] GitHub Push
 
 ## Milestone 7: 이미지 최적화 및 리소스 관리
-- [ ] **CameraX 해상도 전략 적용**
-    - [ ] `ResolutionSelector`를 통한 Target Resolution (1920x1440) 설정
-    - [ ] `ImageCapture` JPEG Quality 80 설정
-- [ ] **최적화 결과 검증**
-    - [ ] 촬영 후 파일 용량(약 500KB 내외) 확인 테스트
-    - [ ] 해상도 정보(1920x1440) 확인 테스트
+- [x] **CameraX 해상도 전략 적용**
+    - [x] `ResolutionSelector`를 통한 Target Resolution (1920x1440) 설정
+    - [x] `ImageCapture` JPEG Quality 80 설정
+- [x] **최적화 결과 검증**
+    - [x] 촬영 후 파일 용량(약 500KB 내외) 확인 테스트
+    - [x] 해상도 정보(1920x1440) 확인 테스트
+- [x] GitHub Push
