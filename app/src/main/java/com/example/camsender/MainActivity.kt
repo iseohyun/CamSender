@@ -16,12 +16,13 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.camsender.camera.CameraHelper
 import com.example.camsender.databinding.ActivityMainBinding
 import com.example.camsender.model.TransferJob
 import com.example.camsender.network.NsdHelper
 import com.example.camsender.network.TransferManager
-import com.example.camsender.ui.TransferStatusBottomSheet
+import com.example.camsender.ui.TransferJobAdapter
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -35,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nsdHelper: NsdHelper
     private lateinit var cameraHelper: CameraHelper
     private lateinit var transferManager: TransferManager
+    private lateinit var jobAdapter: TransferJobAdapter
 
     private var targetServerIp: String? = null
     private var targetServerPort: Int? = null
@@ -57,7 +59,7 @@ class MainActivity : AppCompatActivity() {
         if (allGranted) {
             startCameraAndNsd()
         } else {
-            Toast.makeText(this, "Permissions required for core features", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "필수 권한이 거부되었습니다.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -66,9 +68,41 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupDrawer()
+        initServices()
+        
+        if (allPermissionsGranted()) {
+            startCameraAndNsd()
+        } else {
+            requestPermissionLauncher.launch(requiredPermissions)
+        }
+
+        setupUI()
+        observeTransferJobs()
+    }
+
+    private fun setupDrawer() {
+        // Set drawer width to 95% of screen width
+        val displayMetrics = resources.displayMetrics
+        val drawerParams = binding.drawerContent.layoutParams
+        drawerParams.width = (displayMetrics.widthPixels * 0.95).toInt()
+        binding.drawerContent.layoutParams = drawerParams
+
+        // Setup RecyclerView in Drawer
+        jobAdapter = TransferJobAdapter(
+            onRetry = { transferManager.retryJob(it.id) },
+            onHold = { job, hold -> transferManager.holdJob(job.id, hold) },
+            onRemove = { transferManager.removeJob(it.id) }
+        )
+        binding.rvDrawerTransfers.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = jobAdapter
+        }
+    }
+
+    private fun initServices() {
         val okHttpClient = OkHttpClient()
         transferManager = TransferManager(okHttpClient)
-
         cameraHelper = CameraHelper(this, this, binding.previewView)
         
         nsdHelper = NsdHelper(this).apply {
@@ -85,21 +119,13 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         targetServerIp = null
                         targetServerPort = null
-                        binding.tvServerStatus.text = "Server Lost. Searching..."
+                        binding.tvDrawerServerInfo.text = "서버 연결 끊김. 탐색 중..."
+                        binding.tvMainStatus.text = "연결 끊김"
                         binding.searchingOverlay.visibility = View.VISIBLE
                     }
                 }
             }
         }
-
-        if (allPermissionsGranted()) {
-            startCameraAndNsd()
-        } else {
-            requestPermissionLauncher.launch(requiredPermissions)
-        }
-
-        setupUI()
-        observeTransferJobs()
     }
 
     private fun startCameraAndNsd() {
@@ -112,7 +138,9 @@ class MainActivity : AppCompatActivity() {
     private fun connectToServer(ip: String, port: Int, apiPath: String? = null, version: String? = null) {
         targetServerIp = ip
         targetServerPort = port
-        binding.tvServerStatus.text = "Server Found: $ip:$port (v${version ?: "unknown"})"
+        val infoText = "Server: $ip:$port (v${version ?: "unknown"})"
+        binding.tvDrawerServerInfo.text = infoText
+        binding.tvMainStatus.text = "연결됨: $ip"
         binding.etServerIp.setText(ip)
         
         apiPath?.let { transferManager.setApiPath(it) }
@@ -155,6 +183,10 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 transferManager.jobs.collectLatest { jobs ->
+                    // Sort by latest first
+                    val sortedJobs = jobs.sortedByDescending { it.timestamp }
+                    jobAdapter.submitList(sortedJobs)
+
                     val activeOrFailedCount = jobs.count { 
                         it.status == TransferJob.Status.SENDING || 
                         it.status == TransferJob.Status.FAILED ||
@@ -236,7 +268,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.fabTransferStatus.setOnClickListener {
-            TransferStatusBottomSheet(transferManager).show(supportFragmentManager, "TransferStatus")
+            binding.drawerLayout.openDrawer(binding.drawerContent)
         }
     }
 

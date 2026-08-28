@@ -1,184 +1,170 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/black"
+    android:fitsSystemWindows="true"
     tools:context=".MainActivity">
 
-    <!-- Camera Preview Container (Fixed 4:3 Ratio) -->
+    <!-- Main Content: Camera View -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/cameraContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="H,4:3"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/serverConfigLayout">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black">
 
         <androidx.camera.view.PreviewView
             android:id="@+id/previewView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:scaleType="fitCenter" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <LinearLayout
-        android:id="@+id/serverConfigLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#CC000000"
-        android:orientation="vertical"
-        android:padding="12dp"
-        app:layout_constraintTop_toTopOf="parent">
+        <ImageButton
+            android:id="@+id/btnFlash"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Flash Toggle"
+            android:src="@android:drawable/ic_menu_compass"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@android:color/white" />
 
-        <TextView
-            android:id="@+id/tvServerStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Server Status"
-            android:textColor="@android:color/white"
-            android:textSize="12sp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/etServerIp"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="192.168.0.x"
-                android:inputType="textUri"
-                android:textColor="@android:color/white"
-                android:textColorHint="#999999"
-                android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/btnConnect"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="0dp"
-                android:text="Set" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <ImageButton
-        android:id="@+id/btnFlash"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_margin="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Flash Toggle"
-        android:src="@android:drawable/ic_menu_compass"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/serverConfigLayout"
-        app:tint="@android:color/white" />
-
-    <ImageButton
-        android:id="@+id/btnCapture"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:layout_marginBottom="32dp"
-        android:background="@drawable/ic_launcher_background"
-        android:contentDescription="Capture"
-        android:padding="12dp"
-        android:scaleType="centerInside"
-        android:src="@android:drawable/ic_menu_camera"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <FrameLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabTransferStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="Transfer Status"
-            android:src="@android:drawable/ic_menu_sort_by_size" />
+        <ImageButton
+            android:id="@+id/btnCapture"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginBottom="48dp"
+            android:background="@drawable/ic_launcher_background"
+            android:contentDescription="Capture"
+            android:padding="16dp"
+            android:scaleType="centerInside"
+            android:src="@android:drawable/ic_menu_camera"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
 
         <TextView
-            android:id="@+id/tvBadge"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_gravity="top|end"
-            android:background="@android:color/holo_red_dark"
-            android:gravity="center"
-            android:text="0"
+            android:id="@+id/tvMainStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:background="#80000000"
+            android:padding="4dp"
+            android:text="서버 연결됨"
             android:textColor="@android:color/white"
             android:textSize="10sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-    </FrameLayout>
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Searching Overlay (Intro Screen) -->
+        <!-- Searching Overlay (Intro Screen) -->
+        <LinearLayout
+            android:id="@+id/searchingOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/black"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:visibility="visible">
+
+            <ProgressBar
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:indeterminate="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="서버 찾는 중..."
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnManualConfig"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="수동으로 등록"
+                android:textColor="@android:color/white"
+                app:strokeColor="@android:color/white" />
+
+            <ScrollView
+                android:id="@+id/svIntroLog"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:layout_marginTop="32dp">
+
+                <TextView
+                    android:id="@+id/tvIntroLog"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp" />
+            </ScrollView>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Side Panel: Drawer Content -->
     <LinearLayout
-        android:id="@+id/searchingOverlay"
-        android:layout_width="match_parent"
+        android:id="@+id/drawerContent"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
-        android:background="@android:color/black"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center"
+        android:layout_gravity="start"
+        android:background="@android:color/white"
         android:orientation="vertical"
-        android:padding="32dp">
-
-        <ProgressBar
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:indeterminate="true" />
+        android:padding="16dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="서버 찾는 중..."
-            android:textColor="@android:color/white"
-            android:textSize="18sp"
+            android:text="CamSender"
+            android:textColor="@android:color/black"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/btnManualConfig"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/tvDrawerServerInfo"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="수동으로 등록"
-            android:textColor="@android:color/white"
-            app:strokeColor="@android:color/white" />
+            android:layout_marginTop="8dp"
+            android:text="Server: Not Connected"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="14sp" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="32dp"
-            android:background="#33FFFFFF" />
-
-        <ScrollView
-            android:id="@+id/svIntroLog"
-            android:layout_width="match_parent"
-            android:layout_height="150dp"
             android:layout_marginTop="16dp"
-            android:fadeScrollbars="false">
+            android:background="#EEEEEE" />
 
-            <TextView
-                android:id="@+id/tvIntroLog"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:text="탐색 로그가 여기에 표시됩니다...\n"
-                android:textColor="#CCCCCC"
-                android:textSize="12sp" />
-        </ScrollView>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="전송 내역 (최신순)"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvDrawerTransfers"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="1" />
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

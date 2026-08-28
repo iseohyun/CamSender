@@ -8,6 +8,7 @@ data class TransferJob(
     val file: File,
     val targetIp: String,
     val targetPort: Int,
+    val timestamp: Long = System.currentTimeMillis(),
     var status: Status = Status.PENDING,
     var errorMessage: String? = null
 ) {

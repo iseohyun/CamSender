@@ -9,12 +9,16 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.camsender.databinding.ItemTransferJobBinding
 import com.example.camsender.model.TransferJob
+import java.text.SimpleDateFormat
+import java.util.*
 
 class TransferJobAdapter(
     private val onRetry: (TransferJob) -> Unit,
     private val onHold: (TransferJob, Boolean) -> Unit,
     private val onRemove: (TransferJob) -> Unit
 ) : ListAdapter<TransferJob, TransferJobAdapter.ViewHolder>(DiffCallback) {
+
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     class ViewHolder(val binding: ItemTransferJobBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -27,6 +31,7 @@ class TransferJobAdapter(
         val job = getItem(position)
         with(holder.binding) {
             tvFileName.text = job.file.name
+            tvTimestamp.text = dateFormat.format(Date(job.timestamp))
             tvStatus.text = when (job.status) {
                 TransferJob.Status.PENDING -> "대기 중"
                 TransferJob.Status.SENDING -> "전송 중..."
@@ -38,7 +43,7 @@ class TransferJobAdapter(
             // Thumbnail loading
             if (job.file.exists()) {
                 val options = BitmapFactory.Options().apply {
-                    inSampleSize = 8 // Scale down for thumbnail
+                    inSampleSize = 8
                 }
                 val bitmap = BitmapFactory.decodeFile(job.file.absolutePath, options)
                 ivThumbnail.setImageBitmap(bitmap)

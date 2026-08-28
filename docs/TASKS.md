@@ -1,17 +1,14 @@
-# Development Tasks - Integration & Optimization
+# Development Tasks - UI & Optimization
 
-## Milestone 8: Intro 화면 및 안정성 강화
-- [x] Intro 오버레이 UI 구현 (프로그레스, 로그, 수동 버튼)
-- [x] 수동 서버 등록 다이얼로그 연동
-- [x] CameraX 해상도 호환성 및 바인딩 폴백 로직 적용
-- [x] 실시간 진행 로그 출력 시스템 구축
+## Milestone 9: UI/UX 전면 개편 (Side Panel & Safe Area)
+- [x] `DrawerLayout` 기반 95% 너비 네비게이션 구현
+- [x] 시스템 영역(Safe Area) 침범 방지 처리 (`fitsSystemWindows`)
+- [x] 촬영 내역 최신순 정렬 및 상세 정보(타임스탬프) 추가
+- [x] 내역별 액션(중지, 삭제) 기능 통합
+- [x] 불필요한 구형 UI(BottomSheet) 제거
 - [x] GitHub Push
 
-## Milestone 7: 이미지 최적화 및 리소스 관리
-- [x] **CameraX 해상도 전략 적용**
-    - [x] `ResolutionSelector`를 통한 Target Resolution (1920x1440) 설정
-    - [x] `ImageCapture` JPEG Quality 80 설정
-- [x] **최적화 결과 검증**
-    - [x] 촬영 후 파일 용량(약 500KB 내외) 확인 테스트
-    - [x] 해상도 정보(1920x1440) 확인 테스트
-- [x] GitHub Push
+## Milestone 10: 향후 과제 (Backlog)
+- [ ] 다국어 지원 (한국어/영어)
+- [ ] 서버 여러 대 등록 및 선택 기능
+- [ ] 촬영 시 가이드 라인(A4 규격) 표시
