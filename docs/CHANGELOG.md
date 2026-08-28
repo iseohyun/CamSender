@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.0.1] - 2026-08-28
+### Fixed
+- UI 개편 후 발생한 뷰 참조 오류 수정: `etServerIp`, `tvBadge`, `btnConnect` 등 누락된 참조 해결.
+- `activity_main.xml`에 드로어 오픈용 메뉴 버튼 및 상태 배지 추가.
+- `MainActivity.kt` 로직 최적화 및 뷰 바인딩 정합성 확보.
+
 ## [v1.0.0] - 2026-08-28
 ### Added
 - UI 전면 개편: `DrawerLayout` 기반의 사이드 패널 관리 시스템 도입.

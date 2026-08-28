@@ -141,7 +141,6 @@ class MainActivity : AppCompatActivity() {
         val infoText = "Server: $ip:$port (v${version ?: "unknown"})"
         binding.tvDrawerServerInfo.text = infoText
         binding.tvMainStatus.text = "연결됨: $ip"
-        binding.etServerIp.setText(ip)
         
         apiPath?.let { transferManager.setApiPath(it) }
         transferManager.recoverPendingJobs(cacheDir, ip, port)
@@ -250,13 +249,6 @@ class MainActivity : AppCompatActivity() {
             })
         }
 
-        binding.btnConnect.setOnClickListener {
-            val ip = binding.etServerIp.text.toString()
-            if (ip.isNotEmpty()) {
-                connectToServer(ip, targetServerPort ?: 8443)
-            }
-        }
-
         binding.btnFlash.setOnClickListener {
             val mode = cameraHelper.toggleFlash()
             val icon = when (mode) {
@@ -267,7 +259,7 @@ class MainActivity : AppCompatActivity() {
             binding.btnFlash.setImageResource(icon)
         }
 
-        binding.fabTransferStatus.setOnClickListener {
+        binding.btnOpenDrawer.setOnClickListener {
             binding.drawerLayout.openDrawer(binding.drawerContent)
         }
     }

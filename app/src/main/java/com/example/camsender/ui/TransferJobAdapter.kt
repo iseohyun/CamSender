@@ -15,7 +15,7 @@ import java.util.*
 class TransferJobAdapter(
     private val onRetry: (TransferJob) -> Unit,
     private val onHold: (TransferJob, Boolean) -> Unit,
-    private val onRemove: (TransferJob) -> Unit
+    private val onRemove: (TransferJob) -> Unit,
 ) : ListAdapter<TransferJob, TransferJobAdapter.ViewHolder>(DiffCallback) {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
