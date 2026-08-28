@@ -2,11 +2,14 @@
 
 ## 1. System Overview
 ```mermaid
-graph LR
-    A[Android App] -- HTTPS POST (Multipart) --> B[Python FastAPI Server]
-    B -- Process --> C[OCR Engine]
-    C -- Index --> D[Database]
-    B -- Broadcast (mDNS) --> A
+graph TD
+    A[Android App] --> B[Camera Module]
+    A --> C[NSD Module]
+    A --> D[Transfer Queue Manager]
+    D -- HTTPS POST --> E[Python Server]
+    E -- Response --> D
+    D -- Cleanup --> F[Local Storage]
+    A --> G[Transfer Status Panel UI]
 ```
 
 ## 2. Network Sequence (Discovery to Upload)
@@ -20,7 +23,8 @@ graph LR
 
 ## 3. Android Package Structure (Planned)
 - `com.example.camsender`
-    - `.ui`: Activity, ViewBinding 관련 클래스
-    - `.camera`: CameraX 설정 및 캡처 로직
-    - `.network`: OkHttp 클라이언트, NSD 탐색 로직, SSL 설정
-    - `.utils`: 파일 관리 (생성/삭제) 유틸리티
+    - `.ui`: Activity, ViewBinding, **BottomSheet/Panel** 관련 클래스
+    - `.camera`: `CameraHelper` (CameraX 설정 및 캡처 로직)
+    - `.network`: `NsdHelper`, **`NetworkClient` (SSL/Cert 관리)**, **`TransferManager` (큐 관리)**
+    - `.model`: **`TransferJob` (전송 상태 데이터 클래스)**
+    - `.utils`: 파일 관리 유틸리티

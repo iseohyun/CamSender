@@ -13,6 +13,9 @@ import androidx.core.content.ContextCompat
 import com.example.camsender.camera.CameraHelper
 import com.example.camsender.databinding.ActivityMainBinding
 import com.example.camsender.network.NsdHelper
+import com.example.camsender.network.SslConfigHelper
+import com.example.camsender.network.TransferManager
+import com.example.camsender.ui.TransferStatusBottomSheet
 import java.io.File
 
 class MainActivity : AppCompatActivity() {
@@ -20,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var nsdHelper: NsdHelper
     private lateinit var cameraHelper: CameraHelper
+    private lateinit var transferManager: TransferManager
 
     private var targetServerIp: String? = null
     private var targetServerPort: Int? = null
@@ -51,6 +55,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Initialize TransferManager with Unsafe OkHttpClient for development
+        val okHttpClient = SslConfigHelper.getUnsafeOkHttpClientBuilder().build()
+        transferManager = TransferManager(okHttpClient)
 
         cameraHelper = CameraHelper(this, this, binding.previewView)
         
@@ -103,21 +111,26 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupUI() {
         binding.btnCapture.setOnClickListener {
-            if (targetServerIp == null) {
+            val ip = targetServerIp
+            val port = targetServerPort
+            
+            if (ip == null || port == null) {
                 Toast.makeText(this, "Server not connected", Toast.LENGTH_SHORT).show()
-                // Proceed anyway for testing if needed? No, let's follow the rule.
-                // return@setOnClickListener
+                return@setOnClickListener
             }
             
             cameraHelper.takePicture(object : CameraHelper.OnImageSavedListener {
                 override fun onImageSaved(file: File) {
-                    Toast.makeText(this@MainActivity, "Saved: ${file.name}", Toast.LENGTH_SHORT).show()
-                    Log.d("MainActivity", "Image captured: ${file.absolutePath}")
-                    // Milestone 4: Upload file
+                    runOnUiThread {
+                        Toast.makeText(this@MainActivity, "Captured, uploading...", Toast.LENGTH_SHORT).show()
+                        transferManager.addJob(file, ip, port)
+                    }
                 }
 
                 override fun onError(exception: Exception) {
-                    Toast.makeText(this@MainActivity, "Capture failed: ${exception.message}", Toast.LENGTH_SHORT).show()
+                    runOnUiThread {
+                        Toast.makeText(this@MainActivity, "Capture failed: ${exception.message}", Toast.LENGTH_SHORT).show()
+                    }
                 }
             })
         }
@@ -134,17 +147,15 @@ class MainActivity : AppCompatActivity() {
         binding.btnFlash.setOnClickListener {
             val mode = cameraHelper.toggleFlash()
             val icon = when (mode) {
-                ImageCapture.FLASH_MODE_ON -> android.R.drawable.ic_menu_compass // Replace with flash icons if available
+                ImageCapture.FLASH_MODE_ON -> android.R.drawable.ic_menu_compass
                 ImageCapture.FLASH_MODE_AUTO -> android.R.drawable.ic_menu_mylocation
                 else -> android.R.drawable.ic_menu_close_clear_cancel
             }
             binding.btnFlash.setImageResource(icon)
-            val modeText = when (mode) {
-                ImageCapture.FLASH_MODE_ON -> "ON"
-                ImageCapture.FLASH_MODE_AUTO -> "AUTO"
-                else -> "OFF"
-            }
-            Toast.makeText(this, "Flash: $modeText", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.fabTransferStatus.setOnClickListener {
+            TransferStatusBottomSheet(transferManager).show(supportFragmentManager, "TransferStatus")
         }
     }
 

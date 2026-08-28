@@ -23,9 +23,11 @@
 - [x] GitHub Push
 
 ## Milestone 4: 네트워크 전송 (OkHttp)
-- [ ] 자체 서명 인증서 허용을 위한 `UnsafeOkHttpClient` 또는 SSLContext 설정
-- [ ] Multipart POST 전송 함수 구현
-- [ ] 전송 후 파일 삭제 로직 (Cleanup)
+- [x] 자체 서명 인증서 허용을 위한 `SslConfigHelper` 구현
+- [x] `TransferManager`를 통한 전송 큐 및 상태 관리 시스템 구축
+- [x] 전송 현황 패널(BottomSheet) UI 및 제어 기능 구현
+- [x] 전송 성공 후 클린업(파일 삭제) 로직 적용
+- [x] GitHub Push
 
 ## Milestone 5: 테스트 및 고도화
 - [ ] 전송 상태 UI (Loading, Success/Fail) 처리

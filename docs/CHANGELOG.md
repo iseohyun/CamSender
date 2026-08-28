@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.5.0] - 2026-08-28
+### Added
+- Milestone 4 구현 완료: HTTPS 전송 및 큐(Queue) 관리 시스템.
+- `TransferManager.kt`: 백그라운드 전송 큐 및 상태(대기, 전송 중, 성공, 실패, 보류) 관리 로직.
+- `SslConfigHelper.kt`: 자체 서명 인증서를 신뢰하는 OkHttpClient 설정 (개발용).
+- `TransferStatusBottomSheet.kt`: 전송 현황 시각화 및 제어(재전송, 보류, 삭제)를 위한 하단 패널 UI.
+- 전송 성공 시 로컬 파일 자동 삭제 및 실패 시 보관 정책 적용.
+- `MainActivity`: 촬영 후 자동 전송 큐 등록 연동.
+
 ## [v0.4.0] - 2026-08-28
 ### Added
 - Milestone 3 구현 완료: CameraX 카메라 기능.
