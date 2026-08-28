@@ -5,6 +5,7 @@
 - [x] 시스템 영역(Safe Area) 침범 방지 처리 (`fitsSystemWindows`)
 - [x] 촬영 내역 최신순 정렬 및 상세 정보(타임스탬프) 추가
 - [x] 내역별 액션(중지, 삭제) 기능 통합
+- [x] 드로어 내 서버 수동 연결 버튼 추가
 - [x] 불필요한 구형 UI(BottomSheet) 제거
 - [x] GitHub Push
 

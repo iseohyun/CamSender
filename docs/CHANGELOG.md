@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.0.2] - 2026-08-28
+### Added
+- 사이드 패널(Drawer) 내 서버 수동 설정 버튼 추가: 자동 탐색 실패 시 즉각적인 대응 가능.
+- `showManualConfigDialog` 로직 재사용을 통한 일관된 설정 환경 제공.
+
 ## [v1.0.1] - 2026-08-28
 ### Fixed
 - UI 개편 후 발생한 뷰 참조 오류 수정: `etServerIp`, `tvBadge`, `btnConnect` 등 누락된 참조 해결.

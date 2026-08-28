@@ -262,6 +262,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnOpenDrawer.setOnClickListener {
             binding.drawerLayout.openDrawer(binding.drawerContent)
         }
+
+        binding.btnDrawerManualConfig.setOnClickListener {
+            showManualConfigDialog()
+        }
     }
 
     private fun allPermissionsGranted() = requiredPermissions.all {
