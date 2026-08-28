@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.4.0] - 2026-08-28
+### Added
+- Milestone 3 구현 완료: CameraX 카메라 기능.
+- `CameraHelper.kt`: CameraX 유즈케이스(Preview, ImageCapture) 캡슐화.
+- 4:3 비율 고정 프리뷰: 화면 잘림 없는 UI 레이아웃 적용.
+- 플래시 모드 제어: ON/OFF/AUTO 순환 토글 기능.
+- 터치 투 포커스: 화면 터치 지점 초점 및 노출 조정.
+- 회전 지원: 기기 방향에 따른 사진 촬영 방향 자동 보정.
+- `cacheDir` 저장: 촬영된 이미지를 임시 캐시 디렉토리에 저장.
+
 ## [v0.3.0] - 2026-08-28
 ### Added
 - Milestone 2 구현 완료: 서비스 탐색 (NSD) 시스템.

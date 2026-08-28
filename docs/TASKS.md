@@ -16,8 +16,11 @@
 - [x] GitHub Push
 
 ## Milestone 3: 카메라 (CameraX)
-- [ ] CameraProvider 초기화 및 Preview 연결
-- [ ] `takePicture` 로직 구현 (cacheDir 저장)
+- [x] `CameraHelper` 클래스 구현 (Lifecycle, Preview, Capture, Flash, Focus)
+- [x] 4:3 비율 고정 및 잘림 없는 UI 레이아웃 구성
+- [x] 플래시 ON/OFF/AUTO 및 터치 투 포커스 구현
+- [x] 가로/세로 촬영 방향 대응
+- [x] GitHub Push
 
 ## Milestone 4: 네트워크 전송 (OkHttp)
 - [ ] 자체 서명 인증서 허용을 위한 `UnsafeOkHttpClient` 또는 SSLContext 설정
