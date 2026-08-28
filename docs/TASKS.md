@@ -3,9 +3,11 @@
 ## Milestone 1: 기초 설정 및 권한
 - [x] Android 프로젝트 문서 체계 수립 (SPEC, ARCHITECTURE, CHANGELOG, TASKS)
 - [x] AI Agent Rule 설정 (`.cursorrules`)
-- [ ] AndroidManifest.xml 권한 추가 (Camera, Internet, Nearby Devices)
-- [ ] ViewBinding 활성화 (`build.gradle.kts`)
-- [ ] 기본 레이아웃 구성 (PreviewView, Capture 버튼, Server Status)
+- [x] AndroidManifest.xml 권한 추가 (Camera, Internet, Nearby Devices)
+- [x] ViewBinding 활성화 (`build.gradle.kts`)
+- [x] 기본 레이아웃 구성 (PreviewView, Capture 버튼, Server Status)
+- [x] MainActivity 권한 요청 로직 구현
+- [x] Git 초기화 및 GitHub Push
 
 ## Milestone 2: 서비스 탐색 (NSD)
 - [ ] `NsdHelper` 클래스 구현 (Service Discovery)
