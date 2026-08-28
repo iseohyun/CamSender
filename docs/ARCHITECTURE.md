@@ -3,28 +3,35 @@
 ## 1. System Overview
 ```mermaid
 graph TD
-    A[Android App] --> B[Camera Module]
+    A[MainActivity] --> B[Camera Module]
+    B --> H[Image Optimization]
     A --> C[NSD Module]
     A --> D[Transfer Queue Manager]
-    D -- HTTPS POST --> E[Python Server]
+    A --> G[Status Panel UI]
+    H --> D
+    D -- HTTPS POST --> E[Server Endpoint]
     E -- Response --> D
-    D -- Cleanup --> F[Local Storage]
-    A --> G[Transfer Status Panel UI]
+    D -- Cleanup --> F[Local Cache]
+    E -- Broadcast (mDNS) --> C
 ```
 
-## 2. Network Sequence (Discovery to Upload)
-1. **Server:** `Zeroconf`를 통해 `_http._tcp` 서비스 브로드캐스트.
-2. **Android:** `NsdManager`로 서비스 탐색 및 IP/Port 획득.
-3. **Android:** 유저가 촬영 버튼 클릭 -> CameraX 이미지 캡처.
-4. **Android:** `cacheDir`에 임시 파일 생성.
-5. **Android:** OkHttp 클라이언트를 통해 서버로 파일 전송 (HTTPS).
-6. **Server:** 파일 수신 및 처리 시작.
-7. **Android:** 서버 응답(HTTP 200 등) 수신 시 즉시 로컬 파일 삭제.
+## 2. Architecture Principles
+- **고응집 & 저결합**: 각 모듈(Camera, Network, Queue)은 독립된 책임을 가지며 인터페이스와 데이터 스트림(StateFlow)으로만 소통함.
+- **의도 명확화**: 모든 설계 단계에서 사용자 의도 확인 및 명확화 절차 준수.
 
-## 3. Android Package Structure (Planned)
+## 3. Network Sequence
+1. **Server**: "CamSenderServer" 서비스 브로드캐스트.
+2. **Android (NSD)**: 서비스 탐색 및 IP/Port 동적 획득.
+3. **Android (Camera)**: 4:3 비율로 이미지 캡처.
+4. **Android (Optimization)**: 1920x1440 해상도 리사이징 및 JPEG Quality 80 압축 후 `cacheDir` 저장.
+5. **Android (Queue)**: `TransferManager`에 작업 등록 및 백그라운드 전송 시작.
+5. **Android (Network)**: HTTPS Multipart POST 전송.
+6. **Result Handling**: 전송 성공 시 파일 삭제, 실패 시 보관 및 사용자 알림.
+
+## 4. Package Structure
 - `com.example.camsender`
-    - `.ui`: Activity, ViewBinding, **BottomSheet/Panel** 관련 클래스
-    - `.camera`: `CameraHelper` (CameraX 설정 및 캡처 로직)
-    - `.network`: `NsdHelper`, **`NetworkClient` (SSL/Cert 관리)**, **`TransferManager` (큐 관리)**
-    - `.model`: **`TransferJob` (전송 상태 데이터 클래스)**
-    - `.utils`: 파일 관리 유틸리티
+    - `.ui`: Activity, BottomSheet, Adapter
+    - `.camera`: `CameraHelper` (CameraX 제어)
+    - `.network`: `NsdHelper`, `TransferManager`, `SslConfigHelper`
+    - `.model`: `TransferJob`
+    - `.utils`: File/Storage 유틸리티

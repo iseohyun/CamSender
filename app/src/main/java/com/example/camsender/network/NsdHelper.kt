@@ -3,6 +3,7 @@ package com.example.camsender.network
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.Build
 import android.util.Log
 
 class NsdHelper(context: Context) {
@@ -14,7 +15,7 @@ class NsdHelper(context: Context) {
     private val targetServiceName = "CamSenderServer"
 
     interface OnServerFoundListener {
-        fun onServerFound(ip: String, port: Int)
+        fun onServerFound(ip: String, port: Int, apiPath: String?, version: String?)
         fun onServerLost()
     }
 
@@ -54,7 +55,18 @@ class NsdHelper(context: Context) {
                             Log.d("NsdHelper", "Resolve Succeeded: $resolvedServiceInfo")
                             val ip = resolvedServiceInfo.host.hostAddress ?: ""
                             val port = resolvedServiceInfo.port
-                            listener?.onServerFound(ip, port)
+                            
+                            // Extract TXT records (API level 21+)
+                            val attributes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                resolvedServiceInfo.attributes
+                            } else {
+                                emptyMap()
+                            }
+                            
+                            val apiPath = attributes["api"]?.let { String(it) }
+                            val version = attributes["version"]?.let { String(it) }
+                            
+                            listener?.onServerFound(ip, port, apiPath, version)
                         }
                     })
                 }

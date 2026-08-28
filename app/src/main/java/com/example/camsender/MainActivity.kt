@@ -17,11 +17,11 @@ import com.example.camsender.camera.CameraHelper
 import com.example.camsender.databinding.ActivityMainBinding
 import com.example.camsender.model.TransferJob
 import com.example.camsender.network.NsdHelper
-import com.example.camsender.network.SslConfigHelper
 import com.example.camsender.network.TransferManager
 import com.example.camsender.ui.TransferStatusBottomSheet
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import java.io.File
 
 class MainActivity : AppCompatActivity() {
@@ -62,19 +62,22 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val okHttpClient = SslConfigHelper.getUnsafeOkHttpClientBuilder().build()
+        // Standard OkHttpClient (honors Network Security Config)
+        val okHttpClient = OkHttpClient()
         transferManager = TransferManager(okHttpClient)
 
         cameraHelper = CameraHelper(this, this, binding.previewView)
         
         nsdHelper = NsdHelper(this).apply {
             listener = object : NsdHelper.OnServerFoundListener {
-                override fun onServerFound(ip: String, port: Int) {
+                override fun onServerFound(ip: String, port: Int, apiPath: String?, version: String?) {
                     runOnUiThread {
                         targetServerIp = ip
                         targetServerPort = port
-                        binding.tvServerStatus.text = "Server Found: $ip:$port"
+                        binding.tvServerStatus.text = "Server Found: $ip:$port (v${version ?: "unknown"})"
                         binding.etServerIp.setText(ip)
+                        
+                        apiPath?.let { transferManager.setApiPath(it) }
                         
                         // Start recovery when server is found
                         transferManager.recoverPendingJobs(cacheDir, ip, port)

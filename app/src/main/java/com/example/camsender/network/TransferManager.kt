@@ -10,6 +10,7 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
+import org.json.JSONObject
 import java.io.File
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -19,7 +20,13 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
     private val _jobs = MutableStateFlow<List<TransferJob>>(emptyList())
     val jobs: StateFlow<List<TransferJob>> = _jobs
 
+    private var currentApiPath: String = "/upload"
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    fun setApiPath(path: String) {
+        currentApiPath = if (path.startsWith("/")) path else "/$path"
+    }
 
     fun addJob(file: File, ip: String, port: Int) {
         val job = TransferJob(file = file, targetIp = ip, targetPort = port)
@@ -74,10 +81,42 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
         }
     }
 
+    private suspend fun isServerHealthy(ip: String, port: Int): Pair<Boolean, String?> {
+        val url = "https://$ip:$port/health"
+        val request = Request.Builder().url(url).build()
+        return try {
+            okHttpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val body = response.body?.string() ?: ""
+                    val json = JSONObject(body)
+                    val status = json.optString("status", "")
+                    val storageReady = json.optJSONObject("storage")?.optBoolean("ready", false) ?: false
+                    if (status == "running" && storageReady) {
+                        Pair(true, null)
+                    } else {
+                        Pair(false, "서버 상태 비정상 또는 저장소 준비 안 됨")
+                    }
+                } else {
+                    Pair(false, "헬스체크 실패 (HTTP ${response.code})")
+                }
+            }
+        } catch (e: Exception) {
+            Pair(false, "서버 연결 불가: ${e.localizedMessage}")
+        }
+    }
+
     private suspend fun uploadFile(job: TransferJob) {
         updateJobStatus(job.id, TransferJob.Status.SENDING)
 
-        val url = "https://${job.targetIp}:${job.targetPort}/upload"
+        // 1. Health Check
+        val (healthy, error) = isServerHealthy(job.targetIp, job.targetPort)
+        if (!healthy) {
+            updateJobStatus(job.id, TransferJob.Status.FAILED, error)
+            return
+        }
+
+        // 2. Upload
+        val url = "https://${job.targetIp}:${job.targetPort}$currentApiPath"
         val requestBody = job.file.asRequestBody("image/jpeg".toMediaType())
         val multipartBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)

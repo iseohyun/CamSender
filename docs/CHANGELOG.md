@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.7.0] - 2026-08-28
+### Added
+- Milestone 6 구현 완료: 서버 연동 고도화 및 보안 강화.
+- `network_security_config.xml`: `cert.pem`을 통한 정적 인증서 핀닝(Trust Anchor) 구축.
+- 헬스체크 연동: 전송 전 서버의 `/health` 상태 및 저장소 준비 여부 검증 로직 추가.
+- 동적 API 경로: NSD TXT 레코드에서 `api` 경로를 읽어와 전송 시 자동 적용.
+- 보안 강화: `UnsafeOkHttpClient`를 제거하고 안드로이드 표준 보안 프레임워크 사용.
+- `NsdHelper.kt`: TXT 레코드 파싱 및 버전/API 정보 추출 기능 추가.
+
 ## [v0.6.0] - 2026-08-28
 ### Added
 - Milestone 5 구현 완료: UX 최적화 및 자동 복구 시스템.

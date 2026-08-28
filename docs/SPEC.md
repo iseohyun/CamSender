@@ -1,9 +1,9 @@
 # CamSender Project Specification
 
 ## 1. 개요
-Android 기기에서 촬영한 문서를 로컬 네트워크의 Python 서버로 HTTPS를 통해 안전하게 전송하고, 서버에서 이를 처리(OCR, DB 인덱싱)하는 시스템.
+Android 기기에서 촬영한 문서를 로컬 네트워크의 Python 서버로 HTTPS를 통해 안전하게 전송하는 시스템.
 
-## 2. 안드로이드 앱 (Android)
+## 2. 안드로이드 앱 기능 명세 (Android App)
 - **UI Framework:** XML ViewBinding (Empty Views Activity)
 - **Service Discovery:**
     - `NsdManager`를 사용하여 `_http._tcp` 타입의 서비스 자동 탐색.
@@ -16,32 +16,39 @@ Android 기기에서 촬영한 문서를 로컬 네트워크의 Python 서버로
     - **플래시 제어**: ON / OFF / AUTO 토글 지원.
     - **터치 투 포커스**: 화면 터치 지점 초점 및 노출 조정.
     - **회전 지원**: 기기 방향에 따른 사진 촬영 방향 자동 보정.
-    - `ImageCapture`를 통한 고화질 사진 촬영.
-- **이미지 관리:**
-    - 촬영된 이미지는 `context.cacheDir`에 임시 저장.
-    - 파일명 규칙: `IMG_yyyyMMdd_HHmmss.jpg`
-- **전송 기능 (OkHttp):**
-    - HTTPS POST Multipart 전송.
-    - **인증서 관리**: 서버에서 제공하는 특정 인증서만 신뢰하도록 동적 핀닝(Pinning) 지원 예정.
-    - **전송 큐(Queue) 관리**:
+- **전송 및 큐 관리 (OkHttp & TransferManager):**
+    - **보안**: HTTPS POST Multipart 전송. (개발 단계에서는 자체 서명 인증서 허용)
+    - **전송 큐(Queue)**:
         - 촬영 즉시 큐에 추가되어 백그라운드에서 순차적 전송.
         - 성공, 실패, 보류(Hold) 상태 관리 및 재전송 기능 제공.
-        - **자동 복구**: 앱 시작 시 또는 서버 연결 시 전송되지 않은 캐시 파일을 탐색하여 큐에 자동 복원.
-    - **UX 최적화**:
-        - 전송 상태 배지: 메인 화면 버튼에 대기/진행/실패 항목 수 표시.
-        - 이미지 썸네일: 전송 목록에서 촬영된 이미지 미리보기 제공.
-        - 친화적 에러 메시지: 네트워크 오류 발생 시 사용자 수준의 한국어 메시지 제공.
-- **이미지 및 데이터 정책:**
-    - 촬영된 이미지는 `context.cacheDir`에 임시 저장.
-    - 파일명 규칙: `IMG_yyyyMMdd_HHmmss.jpg`
-    - **삭제 정책**: 서버 전송 성공 응답 수신 시 즉시 로컬 임시 파일 삭제. 전송 실패 시 보관 및 재전송 대기.
+        - **자동 복구**: 앱 시작 시 또는 서버 연결 시 `cacheDir` 내 미전송 파일을 탐색하여 큐에 자동 복원.
+    - **UX 및 피드백**:
+        - **상태 배지**: 메인 화면 버튼에 대기/진행/실패 항목 수 실시간 표시.
+        - **상태 패널**: BottomSheet을 통해 상세 전송 목록 및 제어(재시도, 보류, 삭제) 기능 제공.
+        - **이미지 썸네일**: 전송 목록에서 촬영된 이미지 미리보기 제공.
+        - **친화적 에러 메시지**: 네트워크 오류를 한국어 메시지로 변환하여 안내.
 
-## 3. 서버 (Python FastAPI)
-- **Framework:** FastAPI + Uvicorn.
-- **Service Broadcast:** `Zeroconf` 라이브러리를 사용하여 로컬망에 서비스 알림.
-- **Protocol:** HTTPS (Port: 8443).
-- **Endpoint:** `POST /upload` (Multipart/form-data).
-- **Pipeline:**
-    - 이미지 수신 및 저장.
-    - OCR 엔진(Tesseract 등)을 통한 텍스트 추출.
-    - 추출된 데이터를 DB에 인덱싱.
+## 4. 통신 규약 (Protocol & Interface)
+- **서비스 탐색 (Discovery)**:
+    - 프로토콜: mDNS (DNS-SD)
+    - 서비스 타입: `_http._tcp`
+    - 서비스 이름 필터링: "CamSenderServer" 포함 시 유효
+    - 정보 활용: 발견된 서비스의 IP 및 Port를 동적으로 획득하여 통신에 사용
+- **전송 인터페이스 (Upload)**:
+    - 프로토콜: HTTPS (TLS)
+    - 메소드: `POST`
+    - 엔드포인트: `/upload`
+    - 데이터 형식: Multipart/form-data
+    - 파라미터: 
+        - `file`: 이미지 파일 데이터 (image/jpeg)
+- **보안 정책**:
+    - 자체 서명 인증서(Self-signed) 허용 및 특정 서버 인증서 신뢰 체계 구축
+
+## 5. 데이터 정책
+- **저장 위치**: `context.cacheDir` (앱 내부 임시 디렉토리)
+- **파일명 규칙**: `IMG_yyyyMMdd_HHmmss.jpg`
+- **이미지 최적화 (OCR 최적화 규격)**:
+    - **해상도**: 2K급 (약 1920x1440)으로 제한하여 문서 인식 표준 해상도 유지
+    - **압축**: JPEG Quality 80 설정을 통해 시각적 손실 없이 용량 극대화 절감 (장당 300~600KB 타겟)
+    - **효과**: 원본 대비 용량 95% 이상 절감, 1만 장 기준 총 용량 약 5GB 내외로 관리 가능
+- **삭제 정책**: 서버 전송 **성공(HTTP 200 OK)** 응답 수신 시 즉시 로컬 임시 파일 삭제. 전송 실패 시 보관 및 재전송 대기.
