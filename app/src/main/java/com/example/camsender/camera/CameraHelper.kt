@@ -42,12 +42,12 @@ class CameraHelper(
         cameraProviderFuture.addListener({
             cameraProvider = cameraProviderFuture.get()
 
-            // More compatible resolution strategy
+            // Flexible resolution strategy to avoid IllegalArgumentException on limited hardware
             val resolutionSelector = ResolutionSelector.Builder()
                 .setResolutionStrategy(
                     ResolutionStrategy(
                         Size(1920, 1440),
-                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER
+                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
                     )
                 )
                 .build()
@@ -69,21 +69,24 @@ class CameraHelper(
 
             try {
                 cameraProvider?.unbindAll()
+                // Attempt to bind both use cases
                 camera = cameraProvider?.bindToLifecycle(
                     lifecycleOwner, cameraSelector, preview, imageCapture
                 )
+                Log.d("CameraHelper", "Binding succeeded for Preview and ImageCapture")
                 setupTouchToFocus()
                 setupOrientationListener()
             } catch (exc: Exception) {
-                Log.e("CameraHelper", "Use case binding failed", exc)
-                // Fallback to simpler binding if previous failed
+                Log.e("CameraHelper", "Full binding failed, attempting fallback to Preview only", exc)
                 try {
                     cameraProvider?.unbindAll()
+                    // Fallback: Bind only Preview so the user can at least see the scene
                     camera = cameraProvider?.bindToLifecycle(
                         lifecycleOwner, cameraSelector, preview
                     )
+                    Log.d("CameraHelper", "Fallback binding succeeded for Preview only")
                 } catch (e: Exception) {
-                    Log.e("CameraHelper", "Critical: Fallback binding failed", e)
+                    Log.e("CameraHelper", "Critical: All binding attempts failed", e)
                 }
             }
 
@@ -130,7 +133,10 @@ class CameraHelper(
     }
 
     fun takePicture(listener: OnImageSavedListener) {
-        val imageCapture = imageCapture ?: return
+        val imageCapture = imageCapture ?: run {
+            listener.onError(IllegalStateException("ImageCapture not bound to camera"))
+            return
+        }
 
         val photoFile = File(
             context.cacheDir,

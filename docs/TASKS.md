@@ -11,7 +11,13 @@
 - [x] 불필요한 구형 UI(BottomSheet) 제거
 - [x] GitHub Push
 
-## Milestone 10: 향후 과제 (Backlog)
+## Milestone 10: 진단 및 안정성 강화
+- [x] CameraX 바인딩 폴백 로직 구현 (기기 호환성 해결)
+- [x] 서버 연결 단계별 상세 로그 출력 (Intro 화면)
+- [x] 네트워크 헬스체크 진단 로그 강화
+- [x] GitHub Push
+
+## Milestone 11: 향후 과제 (Backlog)
 - [ ] 다국어 지원 (한국어/영어)
 - [ ] 서버 여러 대 등록 및 선택 기능
 - [ ] 촬영 시 가이드 라인(A4 규격) 표시

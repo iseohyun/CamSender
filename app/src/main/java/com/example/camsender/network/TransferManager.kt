@@ -25,6 +25,7 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     fun setApiPath(path: String) {
+        Log.d("TransferManager", "API Path updated to: $path")
         currentApiPath = if (path.startsWith("/")) path else "/$path"
     }
 
@@ -41,7 +42,7 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
         files?.forEach { file ->
             val alreadyExists = _jobs.value.any { it.file.absolutePath == file.absolutePath }
             if (!alreadyExists) {
-                val job = TransferJob(file = file, targetIp = ip, targetPort = port, status = TransferJob.Status.FAILED, errorMessage = "Recovered from previous session")
+                val job = TransferJob(file = file, targetIp = ip, targetPort = port, status = TransferJob.Status.FAILED, errorMessage = "이전 세션에서 복구됨")
                 synchronized(_jobs) {
                     _jobs.value = _jobs.value + job
                 }
@@ -83,25 +84,34 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
 
     private suspend fun isServerHealthy(ip: String, port: Int): Pair<Boolean, String?> {
         val url = "https://$ip:$port/health"
+        Log.d("TransferManager", "Attempting Health Check: $url")
         val request = Request.Builder().url(url).build()
         return try {
             okHttpClient.newCall(request).execute().use { response ->
+                Log.d("TransferManager", "Health Check Response: ${response.code}")
                 if (response.isSuccessful) {
                     val body = response.body?.string() ?: ""
                     val json = JSONObject(body)
                     val status = json.optString("status", "")
                     val storageReady = json.optJSONObject("storage")?.optBoolean("ready", false) ?: false
                     if (status == "running" && storageReady) {
+                        Log.d("TransferManager", "Server is Healthy and Ready")
                         Pair(true, null)
                     } else {
-                        Pair(false, "서버 상태 비정상 또는 저장소 준비 안 됨")
+                        val msg = "서버 상태 비정상 ($status) 또는 저장소 준비 안 됨 ($storageReady)"
+                        Log.w("TransferManager", "Health Check Logic Failed: $msg")
+                        Pair(false, msg)
                     }
                 } else {
-                    Pair(false, "헬스체크 실패 (HTTP ${response.code})")
+                    val msg = "헬스체크 실패 (HTTP ${response.code})"
+                    Log.w("TransferManager", msg)
+                    Pair(false, msg)
                 }
             }
         } catch (e: Exception) {
-            Pair(false, "서버 연결 불가: ${e.localizedMessage}")
+            val msg = "서버 연결 불가: ${e.localizedMessage}"
+            Log.e("TransferManager", "Health Check Exception: $msg", e)
+            Pair(false, msg)
         }
     }
 
@@ -117,6 +127,7 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
 
         // 2. Upload
         val url = "https://${job.targetIp}:${job.targetPort}$currentApiPath"
+        Log.d("TransferManager", "Starting Upload: $url")
         val requestBody = job.file.asRequestBody("image/jpeg".toMediaType())
         val multipartBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)

@@ -111,6 +111,7 @@ class MainActivity : AppCompatActivity() {
             listener = object : NsdHelper.OnServerFoundListener {
                 override fun onServerFound(ip: String, port: Int, apiPath: String?, version: String?) {
                     addIntroLog("서버 발견! 주소: $ip:$port")
+                    addIntroLog("상세 정보: API=$apiPath, Version=$version")
                     runOnUiThread {
                         connectToServer(ip, port, apiPath, version)
                     }
@@ -138,6 +139,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun connectToServer(ip: String, port: Int, apiPath: String? = null, version: String? = null) {
+        addIntroLog("서버 연결 시퀀스 시작: $ip:$port")
         targetServerIp = ip
         targetServerPort = port
         val infoText = "Server: $ip:$port (v${version ?: "unknown"})"
@@ -145,9 +147,15 @@ class MainActivity : AppCompatActivity() {
         binding.tvMainStatus.text = "연결됨: $ip"
         
         // Save to preferences
+        addIntroLog("서버 주소 저장 중...")
         prefs.edit().putString("last_ip", ip).putInt("last_port", port).apply()
         
-        apiPath?.let { transferManager.setApiPath(it) }
+        apiPath?.let { 
+            addIntroLog("커스텀 API 경로 설정: $it")
+            transferManager.setApiPath(it) 
+        }
+        
+        addIntroLog("미전송 파일 복구 시도 중...")
         transferManager.recoverPendingJobs(cacheDir, ip, port)
 
         addIntroLog("서버 연결 완료. 메인 화면으로 진입합니다.")
