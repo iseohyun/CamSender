@@ -4,9 +4,12 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.ImageCapture
 import androidx.core.content.ContextCompat
@@ -23,6 +26,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -50,8 +55,7 @@ class MainActivity : AppCompatActivity() {
     ) { permissions ->
         val allGranted = permissions.entries.all { it.value }
         if (allGranted) {
-            cameraHelper.startCamera()
-            nsdHelper.startDiscovery()
+            startCameraAndNsd()
         } else {
             Toast.makeText(this, "Permissions required for core features", Toast.LENGTH_LONG).show()
         }
@@ -62,7 +66,6 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Standard OkHttpClient (honors Network Security Config)
         val okHttpClient = OkHttpClient()
         transferManager = TransferManager(okHttpClient)
 
@@ -71,37 +74,81 @@ class MainActivity : AppCompatActivity() {
         nsdHelper = NsdHelper(this).apply {
             listener = object : NsdHelper.OnServerFoundListener {
                 override fun onServerFound(ip: String, port: Int, apiPath: String?, version: String?) {
+                    addIntroLog("서버 발견! 주소: $ip:$port")
                     runOnUiThread {
-                        targetServerIp = ip
-                        targetServerPort = port
-                        binding.tvServerStatus.text = "Server Found: $ip:$port (v${version ?: "unknown"})"
-                        binding.etServerIp.setText(ip)
-                        
-                        apiPath?.let { transferManager.setApiPath(it) }
-                        
-                        // Start recovery when server is found
-                        transferManager.recoverPendingJobs(cacheDir, ip, port)
+                        connectToServer(ip, port, apiPath, version)
                     }
                 }
 
                 override fun onServerLost() {
+                    addIntroLog("서버 연결 유실됨")
                     runOnUiThread {
                         targetServerIp = null
                         targetServerPort = null
                         binding.tvServerStatus.text = "Server Lost. Searching..."
+                        binding.searchingOverlay.visibility = View.VISIBLE
                     }
                 }
             }
         }
 
         if (allPermissionsGranted()) {
-            cameraHelper.startCamera()
+            startCameraAndNsd()
         } else {
             requestPermissionLauncher.launch(requiredPermissions)
         }
 
         setupUI()
         observeTransferJobs()
+    }
+
+    private fun startCameraAndNsd() {
+        addIntroLog("카메라 초기화 중...")
+        cameraHelper.startCamera()
+        addIntroLog("네트워크 탐색 시작 (mDNS)...")
+        nsdHelper.startDiscovery()
+    }
+
+    private fun connectToServer(ip: String, port: Int, apiPath: String? = null, version: String? = null) {
+        targetServerIp = ip
+        targetServerPort = port
+        binding.tvServerStatus.text = "Server Found: $ip:$port (v${version ?: "unknown"})"
+        binding.etServerIp.setText(ip)
+        
+        apiPath?.let { transferManager.setApiPath(it) }
+        transferManager.recoverPendingJobs(cacheDir, ip, port)
+
+        addIntroLog("서버 연결 완료. 메인 화면으로 진입합니다.")
+        binding.searchingOverlay.visibility = View.GONE
+    }
+
+    private fun addIntroLog(message: String) {
+        val timestamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        runOnUiThread {
+            binding.tvIntroLog.append("[$timestamp] $message\n")
+            binding.svIntroLog.post {
+                binding.svIntroLog.fullScroll(View.FOCUS_DOWN)
+            }
+        }
+    }
+
+    private fun showManualConfigDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_manual_config, null)
+        val etIp = dialogView.findViewById<EditText>(R.id.etDialogIp)
+        val etPort = dialogView.findViewById<EditText>(R.id.etDialogPort)
+
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton("연결") { _, _ ->
+                val ip = etIp.text.toString()
+                val port = etPort.text.toString().toIntOrNull() ?: 8443
+                if (ip.isNotEmpty()) {
+                    addIntroLog("수동 연결 시도: $ip:$port")
+                    connectToServer(ip, port)
+                }
+            }
+            .setNegativeButton("취소", null)
+            .show()
     }
 
     private fun observeTransferJobs() {
@@ -126,7 +173,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (allPermissionsGranted()) {
+        if (allPermissionsGranted() && targetServerIp == null) {
             nsdHelper.startDiscovery()
         }
     }
@@ -142,26 +189,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
+        binding.btnManualConfig.setOnClickListener {
+            showManualConfigDialog()
+        }
+
         binding.btnCapture.setOnClickListener {
             val ip = targetServerIp
             val port = targetServerPort
             
             if (ip == null || port == null) {
-                Toast.makeText(this, "Server not connected", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "서버가 연결되지 않았습니다.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             
             cameraHelper.takePicture(object : CameraHelper.OnImageSavedListener {
                 override fun onImageSaved(file: File) {
                     runOnUiThread {
-                        Toast.makeText(this@MainActivity, "Captured, uploading...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "이미지 저장 완료, 업로드 중...", Toast.LENGTH_SHORT).show()
                         transferManager.addJob(file, ip, port)
                     }
                 }
 
                 override fun onError(exception: Exception) {
                     runOnUiThread {
-                        Toast.makeText(this@MainActivity, "Capture failed: ${exception.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "촬영 실패: ${exception.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
             })
@@ -170,10 +221,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnConnect.setOnClickListener {
             val ip = binding.etServerIp.text.toString()
             if (ip.isNotEmpty()) {
-                targetServerIp = ip
-                targetServerPort = 8443
-                binding.tvServerStatus.text = "Server (Manual): $ip:$targetServerPort"
-                transferManager.recoverPendingJobs(cacheDir, ip, targetServerPort!!)
+                connectToServer(ip, targetServerPort ?: 8443)
             }
         }
 

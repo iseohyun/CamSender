@@ -26,54 +26,57 @@ class NsdHelper(context: Context) {
 
         discoveryListener = object : NsdManager.DiscoveryListener {
             override fun onStartDiscoveryFailed(serviceType: String?, errorCode: Int) {
-                Log.e("NsdHelper", "Discovery Start Failed: $errorCode")
+                Log.e("NsdHelper", "DEBUG: Discovery Start Failed: $errorCode")
                 stopDiscovery()
             }
 
             override fun onStopDiscoveryFailed(serviceType: String?, errorCode: Int) {
-                Log.e("NsdHelper", "Discovery Stop Failed: $errorCode")
+                Log.e("NsdHelper", "DEBUG: Discovery Stop Failed: $errorCode")
                 nsdManager.stopServiceDiscovery(this)
             }
 
             override fun onDiscoveryStarted(serviceType: String?) {
-                Log.d("NsdHelper", "Service discovery started")
+                Log.d("NsdHelper", "DEBUG: Service discovery started")
             }
 
             override fun onDiscoveryStopped(serviceType: String?) {
-                Log.d("NsdHelper", "Service discovery stopped")
+                Log.d("NsdHelper", "DEBUG: Service discovery stopped")
             }
 
             override fun onServiceFound(serviceInfo: NsdServiceInfo) {
-                Log.d("NsdHelper", "Service found: ${serviceInfo.serviceName}")
-                if (serviceInfo.serviceType == serviceType && serviceInfo.serviceName.contains(targetServiceName)) {
-                    nsdManager.resolveService(serviceInfo, object : NsdManager.ResolveListener {
-                        override fun onResolveFailed(serviceInfo: NsdServiceInfo?, errorCode: Int) {
-                            Log.e("NsdHelper", "Resolve failed: $errorCode")
-                        }
+                // [CRITICAL DEBUG LOG] Show everything found on the network
+                Log.d("NsdHelper", "DEBUG: Discovered -> Name: '${serviceInfo.serviceName}', Type: '${serviceInfo.serviceType}'")
+                
+                val normalizedFoundType = serviceInfo.serviceType.trim('.')
+                val normalizedTargetType = serviceType.trim('.')
 
-                        override fun onServiceResolved(resolvedServiceInfo: NsdServiceInfo) {
-                            Log.d("NsdHelper", "Resolve Succeeded: $resolvedServiceInfo")
-                            val ip = resolvedServiceInfo.host.hostAddress ?: ""
-                            val port = resolvedServiceInfo.port
-                            
-                            // Extract TXT records (API level 21+)
-                            val attributes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                                resolvedServiceInfo.attributes
-                            } else {
-                                emptyMap()
+                if (normalizedFoundType.contains(normalizedTargetType)) {
+                    Log.d("NsdHelper", "DEBUG: Type match! Checking name for '$targetServiceName'...")
+                    if (serviceInfo.serviceName.contains(targetServiceName)) {
+                        Log.d("NsdHelper", "DEBUG: Name match! Resolving service...")
+                        nsdManager.resolveService(serviceInfo, object : NsdManager.ResolveListener {
+                            override fun onResolveFailed(serviceInfo: NsdServiceInfo?, errorCode: Int) {
+                                Log.e("NsdHelper", "DEBUG: Resolve failed: $errorCode")
                             }
-                            
-                            val apiPath = attributes["api"]?.let { String(it) }
-                            val version = attributes["version"]?.let { String(it) }
-                            
-                            listener?.onServerFound(ip, port, apiPath, version)
-                        }
-                    })
+
+                            override fun onServiceResolved(resolvedServiceInfo: NsdServiceInfo) {
+                                Log.d("NsdHelper", "DEBUG: Resolve Succeeded: ${resolvedServiceInfo.host}:${resolvedServiceInfo.port}")
+                                val ip = resolvedServiceInfo.host.hostAddress ?: ""
+                                val port = resolvedServiceInfo.port
+                                
+                                val attributes = resolvedServiceInfo.attributes
+                                val apiPath = attributes["api"]?.let { String(it) }
+                                val version = attributes["version"]?.let { String(it) }
+                                
+                                listener?.onServerFound(ip, port, apiPath, version)
+                            }
+                        })
+                    }
                 }
             }
 
             override fun onServiceLost(serviceInfo: NsdServiceInfo) {
-                Log.d("NsdHelper", "Service lost: ${serviceInfo.serviceName}")
+                Log.d("NsdHelper", "DEBUG: Service lost: ${serviceInfo.serviceName}")
                 if (serviceInfo.serviceName.contains(targetServiceName)) {
                     listener?.onServerLost()
                 }
@@ -88,7 +91,7 @@ class NsdHelper(context: Context) {
             try {
                 nsdManager.stopServiceDiscovery(it)
             } catch (e: Exception) {
-                Log.e("NsdHelper", "Error stopping discovery", e)
+                Log.e("NsdHelper", "DEBUG: Error stopping discovery", e)
             }
         }
         discoveryListener = null

@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.9.0] - 2026-08-28
+### Added
+- Intro 화면(Searching Overlay) 도입: 앱 실행 시 서버 탐색 상태 및 실시간 로그 표시.
+- 수동 등록 시스템: 탐색 대기 없이 다이얼로그를 통해 서버 IP/Port 직접 입력 가능.
+- 카메라 호환성 개선: `IllegalArgumentException` 해결을 위한 해상도 전략 최적화 및 폴백(Fallback) 바인딩 로직 추가.
+- 실시간 로그 피드백: Intro 화면 내 `ScrollView`를 통해 탐색 및 초기화 과정을 시각화.
+
 ## [v0.8.0] - 2026-08-28
 ### Added
 - Milestone 7 구현 완료: 이미지 최적화 및 리소스 관리.

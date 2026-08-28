@@ -37,7 +37,7 @@
             android:id="@+id/tvServerStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Searching for CamSender server..."
+            android:text="Server Status"
             android:textColor="@android:color/white"
             android:textSize="12sp" />
 
@@ -120,5 +120,65 @@
             android:textStyle="bold"
             android:visibility="gone" />
     </FrameLayout>
+
+    <!-- Searching Overlay (Intro Screen) -->
+    <LinearLayout
+        android:id="@+id/searchingOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <ProgressBar
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:indeterminate="true" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="서버 찾는 중..."
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnManualConfig"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="수동으로 등록"
+            android:textColor="@android:color/white"
+            app:strokeColor="@android:color/white" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="32dp"
+            android:background="#33FFFFFF" />
+
+        <ScrollView
+            android:id="@+id/svIntroLog"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_marginTop="16dp"
+            android:fadeScrollbars="false">
+
+            <TextView
+                android:id="@+id/tvIntroLog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="탐색 로그가 여기에 표시됩니다...\n"
+                android:textColor="#CCCCCC"
+                android:textSize="12sp" />
+        </ScrollView>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

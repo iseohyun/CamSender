@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="서버 주소 수동 입력"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/etDialogIp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="IP 주소 (예: 192.168.0.x)"
+        android:inputType="textUri"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/etDialogPort"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="포트 (기본: 8443)"
+        android:inputType="number"
+        android:text="8443" />
+
+</LinearLayout>

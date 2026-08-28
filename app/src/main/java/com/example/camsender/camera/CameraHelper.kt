@@ -42,6 +42,7 @@ class CameraHelper(
         cameraProviderFuture.addListener({
             cameraProvider = cameraProviderFuture.get()
 
+            // More compatible resolution strategy
             val resolutionSelector = ResolutionSelector.Builder()
                 .setResolutionStrategy(
                     ResolutionStrategy(
@@ -75,6 +76,15 @@ class CameraHelper(
                 setupOrientationListener()
             } catch (exc: Exception) {
                 Log.e("CameraHelper", "Use case binding failed", exc)
+                // Fallback to simpler binding if previous failed
+                try {
+                    cameraProvider?.unbindAll()
+                    camera = cameraProvider?.bindToLifecycle(
+                        lifecycleOwner, cameraSelector, preview
+                    )
+                } catch (e: Exception) {
+                    Log.e("CameraHelper", "Critical: Fallback binding failed", e)
+                }
             }
 
         }, ContextCompat.getMainExecutor(context))
