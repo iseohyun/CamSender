@@ -29,6 +29,9 @@
 - [x] 전송 성공 후 클린업(파일 삭제) 로직 적용
 - [x] GitHub Push
 
-## Milestone 5: 테스트 및 고도화
-- [ ] 전송 상태 UI (Loading, Success/Fail) 처리
-- [ ] 에러 핸들링 (네트워크 단절, 서버 타임아웃 등)
+## Milestone 5: UX 최적화 및 최종 검증
+- [x] 전송 실패 건 자동 복구(Recovery) 로직 구현
+- [x] 메인 FAB 전송 상태 배지(Badge) 카운터 추가
+- [x] 전송 목록 이미지 썸네일(Thumbnail) 표시
+- [x] 사용자 친화적 에러 메시지(Error Mapping) 적용
+- [x] 전체 기능 최종 검증 및 GitHub Push

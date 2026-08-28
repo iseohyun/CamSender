@@ -1,5 +1,6 @@
 package com.example.camsender.ui
 
+import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,11 +28,22 @@ class TransferJobAdapter(
         with(holder.binding) {
             tvFileName.text = job.file.name
             tvStatus.text = when (job.status) {
-                TransferJob.Status.PENDING -> "Pending"
-                TransferJob.Status.SENDING -> "Sending..."
-                TransferJob.Status.SUCCESS -> "Success"
-                TransferJob.Status.FAILED -> "Failed: ${job.errorMessage}"
-                TransferJob.Status.HOLD -> "Paused"
+                TransferJob.Status.PENDING -> "대기 중"
+                TransferJob.Status.SENDING -> "전송 중..."
+                TransferJob.Status.SUCCESS -> "성공"
+                TransferJob.Status.FAILED -> "실패: ${job.errorMessage}"
+                TransferJob.Status.HOLD -> "보류됨"
+            }
+
+            // Thumbnail loading
+            if (job.file.exists()) {
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = 8 // Scale down for thumbnail
+                }
+                val bitmap = BitmapFactory.decodeFile(job.file.absolutePath, options)
+                ivThumbnail.setImageBitmap(bitmap)
+            } else {
+                ivThumbnail.setImageDrawable(null)
             }
 
             btnRetry.visibility = if (job.status == TransferJob.Status.FAILED) View.VISIBLE else View.GONE

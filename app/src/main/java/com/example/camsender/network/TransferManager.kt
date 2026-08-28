@@ -11,6 +11,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 class TransferManager(private val okHttpClient: OkHttpClient) {
 
@@ -25,6 +27,19 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
             _jobs.value = _jobs.value + job
         }
         processNext()
+    }
+
+    fun recoverPendingJobs(cacheDir: File, ip: String, port: Int) {
+        val files = cacheDir.listFiles { _, name -> name.startsWith("IMG_") && name.endsWith(".jpg") }
+        files?.forEach { file ->
+            val alreadyExists = _jobs.value.any { it.file.absolutePath == file.absolutePath }
+            if (!alreadyExists) {
+                val job = TransferJob(file = file, targetIp = ip, targetPort = port, status = TransferJob.Status.FAILED, errorMessage = "Recovered from previous session")
+                synchronized(_jobs) {
+                    _jobs.value = _jobs.value + job
+                }
+            }
+        }
     }
 
     fun retryJob(jobId: String) {
@@ -79,19 +94,23 @@ class TransferManager(private val okHttpClient: OkHttpClient) {
                 if (response.isSuccessful) {
                     Log.d("TransferManager", "Upload successful: ${job.file.name}")
                     updateJobStatus(job.id, TransferJob.Status.SUCCESS)
-                    // Cleanup file after success
                     if (job.file.exists()) job.file.delete()
                 } else {
-                    val errorMsg = "Server returned ${response.code}"
+                    val errorMsg = "서버 오류: ${response.code}"
                     Log.e("TransferManager", "Upload failed: $errorMsg")
                     updateJobStatus(job.id, TransferJob.Status.FAILED, errorMsg)
                 }
             }
         } catch (e: Exception) {
             Log.e("TransferManager", "Upload exception", e)
-            updateJobStatus(job.id, TransferJob.Status.FAILED, e.message)
+            val mappedError = when(e) {
+                is SocketTimeoutException -> "서버 연결 시간 초과"
+                is UnknownHostException -> "서버 주소를 찾을 수 없음 (네트워크 확인 필요)"
+                else -> "전송 오류: ${e.localizedMessage}"
+            }
+            updateJobStatus(job.id, TransferJob.Status.FAILED, mappedError)
         } finally {
-            processNext() // Try next pending job
+            processNext()
         }
     }
 }

@@ -4,18 +4,24 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.ImageCapture
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.camsender.camera.CameraHelper
 import com.example.camsender.databinding.ActivityMainBinding
+import com.example.camsender.model.TransferJob
 import com.example.camsender.network.NsdHelper
 import com.example.camsender.network.SslConfigHelper
 import com.example.camsender.network.TransferManager
 import com.example.camsender.ui.TransferStatusBottomSheet
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.io.File
 
 class MainActivity : AppCompatActivity() {
@@ -56,7 +62,6 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize TransferManager with Unsafe OkHttpClient for development
         val okHttpClient = SslConfigHelper.getUnsafeOkHttpClientBuilder().build()
         transferManager = TransferManager(okHttpClient)
 
@@ -70,6 +75,9 @@ class MainActivity : AppCompatActivity() {
                         targetServerPort = port
                         binding.tvServerStatus.text = "Server Found: $ip:$port"
                         binding.etServerIp.setText(ip)
+                        
+                        // Start recovery when server is found
+                        transferManager.recoverPendingJobs(cacheDir, ip, port)
                     }
                 }
 
@@ -90,6 +98,27 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupUI()
+        observeTransferJobs()
+    }
+
+    private fun observeTransferJobs() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                transferManager.jobs.collectLatest { jobs ->
+                    val activeOrFailedCount = jobs.count { 
+                        it.status == TransferJob.Status.SENDING || 
+                        it.status == TransferJob.Status.FAILED ||
+                        it.status == TransferJob.Status.PENDING
+                    }
+                    if (activeOrFailedCount > 0) {
+                        binding.tvBadge.visibility = View.VISIBLE
+                        binding.tvBadge.text = activeOrFailedCount.toString()
+                    } else {
+                        binding.tvBadge.visibility = View.GONE
+                    }
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -141,6 +170,7 @@ class MainActivity : AppCompatActivity() {
                 targetServerIp = ip
                 targetServerPort = 8443
                 binding.tvServerStatus.text = "Server (Manual): $ip:$targetServerPort"
+                transferManager.recoverPendingJobs(cacheDir, ip, targetServerPort!!)
             }
         }
 
