@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.0.3] - 2026-08-28
+### Added
+- 맞춤형 앱 아이콘 적용: 제공된 SVG 디자인을 바탕으로 Adaptive Icon(Background/Foreground) 구성.
+- `colors.xml`에 아이콘 전용 테마 색상 추가.
+
 ## [v1.0.2] - 2026-08-28
 ### Added
 - 사이드 패널(Drawer) 내 서버 수동 설정 버튼 추가: 자동 탐색 실패 시 즉각적인 대응 가능.
